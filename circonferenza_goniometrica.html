@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circonferenza Goniometrica Interattiva</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow-x: hidden;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 0 0 15px 0;
+            font-size: 24px;
+        }
+        
+        .content {
+            display: block;
+            width: 100%;
+        }
+        
+        #canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: block;
+            margin: 0 auto 20px auto;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .info-panel h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .value-item {
+            margin: 12px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .value-label {
+            font-weight: bold;
+        }
+        
+        .value-number {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .angle-section {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .red { color: #e74c3c; }
+        .blue { color: #3498db; }
+        .green { color: #27ae60; }
+        .purple { color: #9b59b6; }
+        
+        .instructions {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 13px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📐 Circonferenza Goniometrica Interattiva</h1>
+        
+        <div class="content">
+            <canvas id="canvas" width="600" height="600"></canvas>
+            
+            <div class="info-panel">
+                <h2>📊 Valori</h2>
+                
+                <div class="angle-section">
+                    <div class="value-item">
+                        <span class="value-label purple">Angolo:</span>
+                        <span class="value-number purple" id="angleDeg">45.0°</span>
+                    </div>
+                    <div class="value-item">
+                        <span class="value-label purple">Radianti:</span>
+                        <span class="value-number purple" id="angleRad">0.785 rad</span>
+                    </div>
+                </div>
+                
+                <div class="value-item">
+                    <span class="value-label red">sen(α) =</span>
+                    <span class="value-number red" id="sinValue">0.707</span>
+                </div>
+                
+                <div class="value-item">
+                    <span class="value-label blue">cos(α) =</span>
+                    <span class="value-number blue" id="cosValue">0.707</span>
+                </div>
+                
+                <div class="value-item">
+                    <span class="value-label green">tan(α) =</span>
+                    <span class="value-number green" id="tanValue">1.000</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            🖱️ Trascina il punto rosso sulla circonferenza o clicca su un punto qualsiasi
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 200;
+        let angle = Math.PI / 4; // 45 gradi iniziali
+        let isDragging = false;
+        
+        function drawGrid() {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            
+            // Griglia
+            for (let i = -3; i <= 3; i++) {
+                if (i === 0) continue;
+                const pos = centerX + i * (radius / 3);
+                
+                // Linee verticali
+                ctx.beginPath();
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, canvas.height);
+                ctx.stroke();
+                
+                // Linee orizzontali
+                ctx.beginPath();
+                ctx.moveTo(0, centerY + i * (radius / 3));
+                ctx.lineTo(canvas.width, centerY + i * (radius / 3));
+                ctx.stroke();
+            }
+        }
+        
+        function drawAxes() {
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            
+            // Asse X
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(canvas.width, centerY);
+            ctx.stroke();
+            
+            // Asse Y
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, canvas.height);
+            ctx.stroke();
+            
+            // Frecce assi
+            drawArrow(canvas.width - 10, centerY, canvas.width - 20, centerY - 5);
+            drawArrow(canvas.width - 10, centerY, canvas.width - 20, centerY + 5);
+            drawArrow(centerX, 10, centerX - 5, 20);
+            drawArrow(centerX, 10, centerX + 5, 20);
+            
+            // Etichette
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('x', canvas.width - 30, centerY - 15);
+            ctx.fillText('y', centerX + 15, 25);
+        }
+        
+        function drawArrow(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        
+        function drawCircle() {
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+        
+        function drawTangentLine() {
+            const tanX = centerX + radius;
+            ctx.strokeStyle = '#bbb';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(tanX, 0);
+            ctx.lineTo(tanX, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            drawAxes();
+            drawCircle();
+            drawTangentLine();
+            
+            const px = centerX + radius * Math.cos(angle);
+            const py = centerY - radius * Math.sin(angle);
+            
+            const cosX = centerX + radius * Math.cos(angle);
+            const sinY = centerY - radius * Math.sin(angle);
+            
+            // Raggio prolungato
+            const tanX = centerX + radius;
+            const cosAngle = Math.cos(angle);
+            let tanY;
+            
+            if (Math.abs(cosAngle) > 0.01) {
+                const tanValue = Math.tan(angle);
+                tanY = centerY - radius * tanValue;
+            } else {
+                tanY = py > centerY ? 0 : canvas.height;
+            }
+            
+            // Disegna raggio prolungato
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tanX, tanY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Segmento coseno (blu)
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(cosX, centerY);
+            ctx.stroke();
+            
+            // Archetto per l'angolo ESPLEMENTARE (dall'asse x al raggio in senso orario)
+            const arcAngle = angle % (2 * Math.PI);
+            const arcAnglePositive = arcAngle < 0 ? arcAngle + 2 * Math.PI : arcAngle;
+            
+            const arcRadius = 50;
+            ctx.strokeStyle = '#9b59b6';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            // Senso orario (true) per l'angolo esplementare
+            ctx.arc(centerX, centerY, arcRadius, 0, -arcAnglePositive, true);
+            ctx.stroke();
+            
+            // Etichetta α nella posizione dell'arco principale (più piccolo)
+            ctx.fillStyle = '#9b59b6';
+            ctx.font = 'bold 18px Arial';
+            const labelRadius = arcRadius + 20;
+            const labelAngle = -arcAnglePositive / 2;
+            const labelX = centerX + labelRadius * Math.cos(labelAngle);
+            const labelY = centerY + labelRadius * Math.sin(labelAngle);
+            ctx.fillText('α', labelX - 6, labelY + 6);
+            
+            // Segmento seno (rosso)
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(cosX, centerY);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+            
+            // Segmento tangente (verde)
+            if (Math.abs(cosAngle) > 0.01 && Math.abs(tanY - centerY) < canvas.height) {
+                ctx.strokeStyle = '#27ae60';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(tanX, centerY);
+                ctx.lineTo(tanX, tanY);
+                ctx.stroke();
+                
+                // Punto T
+                ctx.fillStyle = '#27ae60';
+                ctx.beginPath();
+                ctx.arc(tanX, tanY, 6, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            // Linea tratteggiata da linea tangente (x=1) a P per angoli tra 90° e 270°
+            const normalizedAngle = angle % (2 * Math.PI);
+            const anglePositive = normalizedAngle < 0 ? normalizedAngle + 2 * Math.PI : normalizedAngle;
+            
+            // Tra 90° e 270° (π/2 e 3π/2) - disegna sempre
+            if (anglePositive > Math.PI/2 && anglePositive < 3*Math.PI/2) {
+                // Calcola il punto sulla linea x=1 all'altezza corretta
+                let lineY;
+                if (Math.abs(cosAngle) > 0.01) {
+                    lineY = tanY;
+                } else {
+                    // Quando cos è ~0, prendi l'altezza di P
+                    lineY = py;
+                }
+                
+                ctx.strokeStyle = '#95a5a6';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(tanX, lineY);
+                ctx.lineTo(px, py);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Punto P
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(px, py, 10, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Etichetta P
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('P', px + 15, py - 10);
+            
+            updateValues();
+        }
+        
+        function updateValues() {
+            const degrees = (angle * 180 / Math.PI) % 360;
+            const normalizedDegrees = degrees < 0 ? degrees + 360 : degrees;
+            
+            document.getElementById('angleDeg').textContent = normalizedDegrees.toFixed(1) + '°';
+            
+            // Mostra radianti con π esplicito
+            const radiansOverPi = angle / Math.PI;
+            let radianText;
+            
+            // Se è molto vicino a un multiplo razionale di π, mostralo in forma simbolica
+            const fractions = [
+                {val: 0, text: '0'},
+                {val: 1/6, text: 'π/6'},
+                {val: 1/4, text: 'π/4'},
+                {val: 1/3, text: 'π/3'},
+                {val: 1/2, text: 'π/2'},
+                {val: 2/3, text: '2π/3'},
+                {val: 3/4, text: '3π/4'},
+                {val: 5/6, text: '5π/6'},
+                {val: 1, text: 'π'},
+                {val: 7/6, text: '7π/6'},
+                {val: 5/4, text: '5π/4'},
+                {val: 4/3, text: '4π/3'},
+                {val: 3/2, text: '3π/2'},
+                {val: 5/3, text: '5π/3'},
+                {val: 7/4, text: '7π/4'},
+                {val: 11/6, text: '11π/6'},
+                {val: 2, text: '2π'}
+            ];
+            
+            let foundFraction = false;
+            const normalizedRadiansOverPi = radiansOverPi < 0 ? radiansOverPi + 2 : radiansOverPi % 2;
+            
+            for (let frac of fractions) {
+                if (Math.abs(normalizedRadiansOverPi - frac.val) < 0.02) {
+                    radianText = frac.text + ' rad';
+                    foundFraction = true;
+                    break;
+                }
+            }
+            
+            if (!foundFraction) {
+                // Mostra come decimale × π
+                radianText = radiansOverPi.toFixed(3) + 'π rad';
+            }
+            
+            document.getElementById('angleRad').textContent = radianText;
+            document.getElementById('sinValue').textContent = Math.sin(angle).toFixed(3);
+            document.getElementById('cosValue').textContent = Math.cos(angle).toFixed(3);
+            
+            const cosAngle = Math.cos(angle);
+            if (Math.abs(cosAngle) > 0.01) {
+                document.getElementById('tanValue').textContent = Math.tan(angle).toFixed(3);
+            } else {
+                document.getElementById('tanValue').textContent = '∞';
+            }
+        }
+        
+        function getAngleFromMouse(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - centerX;
+            const y = centerY - (e.clientY - rect.top);
+            return Math.atan2(y, x);
+        }
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const newAngle = getAngleFromMouse(e);
+            angle = newAngle;
+            isDragging = true;
+            draw();
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                angle = getAngleFromMouse(e);
+                draw();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+        
+        // Touch events per dispositivi mobili
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        // Disegno iniziale
+        draw();
+    </script>
+</body>
+</html>
