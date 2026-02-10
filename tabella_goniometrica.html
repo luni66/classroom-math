@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabella Goniometrica</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cambria Math', 'Cambria', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e3c72;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        thead {
+            background: linear-gradient(135deg, #4472C4 0%, #2a5298 100%);
+            color: white;
+        }
+
+        th {
+            padding: 16px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid #2a5298;
+        }
+
+        td {
+            padding: 14px;
+            text-align: center;
+            font-size: 1.2em;
+            border: 1px solid #e0e0e0;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:hover {
+            background-color: #e3f2fd;
+            transition: background-color 0.2s ease;
+        }
+
+        .non-definita {
+            color: #d32f2f;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+            
+            tbody tr:hover {
+                background-color: transparent;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tabella Goniometrica</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Gradi (°)</th>
+                    <th>Radianti</th>
+                    <th>Coseno</th>
+                    <th>Seno</th>
+                    <th>Tangente</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <td>30</td>
+                    <td>π/6</td>
+                    <td>√3/2</td>
+                    <td>1/2</td>
+                    <td>√3/3</td>
+                </tr>
+                <tr>
+                    <td>45</td>
+                    <td>π/4</td>
+                    <td>√2/2</td>
+                    <td>√2/2</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>60</td>
+                    <td>π/3</td>
+                    <td>1/2</td>
+                    <td>√3/2</td>
+                    <td>√3</td>
+                </tr>
+                <tr>
+                    <td>90</td>
+                    <td>π/2</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td class="non-definita">∄</td>
+                </tr>
+                <tr>
+                    <td>120</td>
+                    <td>2π/3</td>
+                    <td>−1/2</td>
+                    <td>√3/2</td>
+                    <td>−√3</td>
+                </tr>
+                <tr>
+                    <td>135</td>
+                    <td>3π/4</td>
+                    <td>−√2/2</td>
+                    <td>√2/2</td>
+                    <td>−1</td>
+                </tr>
+                <tr>
+                    <td>150</td>
+                    <td>5π/6</td>
+                    <td>−√3/2</td>
+                    <td>1/2</td>
+                    <td>−√3/3</td>
+                </tr>
+                <tr>
+                    <td>180</td>
+                    <td>π</td>
+                    <td>−1</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <td>210</td>
+                    <td>7π/6</td>
+                    <td>−√3/2</td>
+                    <td>−1/2</td>
+                    <td>√3/3</td>
+                </tr>
+                <tr>
+                    <td>225</td>
+                    <td>5π/4</td>
+                    <td>−√2/2</td>
+                    <td>−√2/2</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>240</td>
+                    <td>4π/3</td>
+                    <td>−1/2</td>
+                    <td>−√3/2</td>
+                    <td>√3</td>
+                </tr>
+                <tr>
+                    <td>270</td>
+                    <td>3π/2</td>
+                    <td>0</td>
+                    <td>−1</td>
+                    <td class="non-definita">∄</td>
+                </tr>
+                <tr>
+                    <td>300</td>
+                    <td>5π/3</td>
+                    <td>1/2</td>
+                    <td>−√3/2</td>
+                    <td>−√3</td>
+                </tr>
+                <tr>
+                    <td>315</td>
+                    <td>7π/4</td>
+                    <td>√2/2</td>
+                    <td>−√2/2</td>
+                    <td>−1</td>
+                </tr>
+                <tr>
+                    <td>330</td>
+                    <td>11π/6</td>
+                    <td>√3/2</td>
+                    <td>−1/2</td>
+                    <td>−√3/3</td>
+                </tr>
+                <tr>
+                    <td>360</td>
+                    <td>2π</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
