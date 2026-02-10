@@ -30,8 +30,11 @@
         }
         
         .content {
-            display: block;
-            width: 100%;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         
         #canvas {
@@ -39,18 +42,15 @@
             border-radius: 10px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: block;
-            margin: 0 auto 20px auto;
-            max-width: 100%;
-            height: auto;
+            flex-shrink: 0;
         }
         
         .info-panel {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             padding: 20px;
             border-radius: 15px;
-            max-width: 600px;
-            margin: 0 auto;
+            width: 280px;
+            flex-shrink: 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
@@ -61,7 +61,6 @@
             border-bottom: 3px solid #667eea;
             padding-bottom: 8px;
             margin-bottom: 15px;
-            text-align: center;
         }
         
         .value-item {
@@ -71,18 +70,18 @@
             border-radius: 8px;
             font-size: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
         }
         
         .value-label {
             font-weight: bold;
+            display: inline-block;
+            width: 90px;
         }
         
         .value-number {
             font-family: 'Courier New', monospace;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 17px;
         }
         
         .angle-section {
@@ -254,22 +253,78 @@
             // Raggio prolungato
             const tanX = centerX + radius;
             const cosAngle = Math.cos(angle);
-            let tanY;
             
-            if (Math.abs(cosAngle) > 0.01) {
-                const tanValue = Math.tan(angle);
-                tanY = centerY - radius * tanValue;
+            // Calcola il punto T (intersezione della retta O-P con la linea x=tanX)
+            // Questo è il punto geometricamente corretto, indipendentemente da dove si trova
+            let tanY;
+            if (Math.abs(px - centerX) > 0.0001) {
+                // La retta O-P ha pendenza m = (py - centerY) / (px - centerX)
+                // L'intersezione con x = tanX è: y = centerY + m * (tanX - centerX)
+                const slope = (py - centerY) / (px - centerX);
+                tanY = centerY + slope * (tanX - centerX);
             } else {
-                tanY = py > centerY ? 0 : canvas.height;
+                // P è esattamente sull'asse y - la tangente va all'infinito
+                tanY = py > centerY ? -100000 : 100000;
             }
             
-            // Disegna raggio prolungato
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([3, 3]);
+            // Retta tratteggiata passante per l'origine e P
+            // Calcola la direzione da O a P
+            const dx = px - centerX;
+            const dy = py - centerY;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const dirX = dx / length;
+            const dirY = dy / length;
+            
+            // Estendi la retta in entrambe le direzioni fino ai bordi del canvas
+            // Direzione positiva (da O verso P e oltre)
+            let t_pos_max = 1000;
+            let endX_pos = px + 1000 * dirX;
+            let endY_pos = py + 1000 * dirY;
+            
+            if (dirX > 0.001) {
+                const t = (canvas.width - centerX) / dirX;
+                if (t < t_pos_max) { t_pos_max = t; endX_pos = canvas.width; endY_pos = centerY + t * dirY; }
+            } else if (dirX < -0.001) {
+                const t = (0 - centerX) / dirX;
+                if (t < t_pos_max) { t_pos_max = t; endX_pos = 0; endY_pos = centerY + t * dirY; }
+            }
+            
+            if (dirY > 0.001) {
+                const t = (canvas.height - centerY) / dirY;
+                if (t < t_pos_max) { t_pos_max = t; endX_pos = centerX + t * dirX; endY_pos = canvas.height; }
+            } else if (dirY < -0.001) {
+                const t = (0 - centerY) / dirY;
+                if (t < t_pos_max) { t_pos_max = t; endX_pos = centerX + t * dirX; endY_pos = 0; }
+            }
+            
+            // Direzione negativa (da O nella direzione opposta)
+            let t_neg_max = 1000;
+            let endX_neg = centerX - 1000 * dirX;
+            let endY_neg = centerY - 1000 * dirY;
+            
+            if (dirX > 0.001) {
+                const t = (0 - centerX) / (-dirX);
+                if (t < t_neg_max) { t_neg_max = t; endX_neg = 0; endY_neg = centerY - t * dirY; }
+            } else if (dirX < -0.001) {
+                const t = (canvas.width - centerX) / (-dirX);
+                if (t < t_neg_max) { t_neg_max = t; endX_neg = canvas.width; endY_neg = centerY - t * dirY; }
+            }
+            
+            if (dirY > 0.001) {
+                const t = (0 - centerY) / (-dirY);
+                if (t < t_neg_max) { t_neg_max = t; endX_neg = centerX - t * dirX; endY_neg = 0; }
+            } else if (dirY < -0.001) {
+                const t = (canvas.height - centerY) / (-dirY);
+                if (t < t_neg_max) { t_neg_max = t; endX_neg = centerX - t * dirX; endY_neg = canvas.height; }
+            }
+            
+            // Disegna la retta tratteggiata
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
             ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(tanX, tanY);
+            ctx.moveTo(endX_neg, endY_neg);
+            ctx.lineTo(endX_pos, endY_pos);
             ctx.stroke();
             ctx.setLineDash([]);
             
@@ -310,45 +365,41 @@
             ctx.lineTo(px, py);
             ctx.stroke();
             
-            // Segmento tangente (verde)
-            if (Math.abs(cosAngle) > 0.01 && Math.abs(tanY - centerY) < canvas.height) {
+            // Segmento tangente (verde) - disegna sempre tranne quando cos ≈ 0
+            const shouldDrawTangent = Math.abs(cosAngle) > 0.01;
+            
+            if (shouldDrawTangent) {
                 ctx.strokeStyle = '#27ae60';
                 ctx.lineWidth = 6;
                 ctx.beginPath();
-                ctx.moveTo(tanX, centerY);
-                ctx.lineTo(tanX, tanY);
-                ctx.stroke();
                 
-                // Punto T
-                ctx.fillStyle = '#27ae60';
-                ctx.beginPath();
-                ctx.arc(tanX, tanY, 6, 0, 2 * Math.PI);
-                ctx.fill();
-            }
-            
-            // Linea tratteggiata da linea tangente (x=1) a P per angoli tra 90° e 270°
-            const normalizedAngle = angle % (2 * Math.PI);
-            const anglePositive = normalizedAngle < 0 ? normalizedAngle + 2 * Math.PI : normalizedAngle;
-            
-            // Tra 90° e 270° (π/2 e 3π/2) - disegna sempre
-            if (anglePositive > Math.PI/2 && anglePositive < 3*Math.PI/2) {
-                // Calcola il punto sulla linea x=1 all'altezza corretta
-                let lineY;
-                if (Math.abs(cosAngle) > 0.01) {
-                    lineY = tanY;
+                // Clippa tanY ai bordi del canvas per la visualizzazione
+                const tanYDraw = Math.max(0, Math.min(canvas.height, tanY));
+                
+                // Disegna da centerY verso tanY (o verso il bordo se è fuori)
+                if (tanY < 0) {
+                    // tanY è sopra il canvas
+                    ctx.moveTo(tanX, 0);
+                    ctx.lineTo(tanX, centerY);
+                } else if (tanY > canvas.height) {
+                    // tanY è sotto il canvas
+                    ctx.moveTo(tanX, centerY);
+                    ctx.lineTo(tanX, canvas.height);
                 } else {
-                    // Quando cos è ~0, prendi l'altezza di P
-                    lineY = py;
+                    // tanY è dentro il canvas
+                    ctx.moveTo(tanX, centerY);
+                    ctx.lineTo(tanX, tanY);
+                    
+                    // Punto T solo se è visibile
+                    ctx.stroke();
+                    ctx.fillStyle = '#27ae60';
+                    ctx.beginPath();
+                    ctx.arc(tanX, tanY, 6, 0, 2 * Math.PI);
+                    ctx.fill();
                 }
-                
-                ctx.strokeStyle = '#95a5a6';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.beginPath();
-                ctx.moveTo(tanX, lineY);
-                ctx.lineTo(px, py);
-                ctx.stroke();
-                ctx.setLineDash([]);
+                if (tanY < 0 || tanY > canvas.height) {
+                    ctx.stroke();
+                }
             }
             
             // Punto P
@@ -419,8 +470,8 @@
             document.getElementById('sinValue').textContent = Math.sin(angle).toFixed(3);
             document.getElementById('cosValue').textContent = Math.cos(angle).toFixed(3);
             
-            const cosAngle = Math.cos(angle);
-            if (Math.abs(cosAngle) > 0.01) {
+            const cosValue = Math.cos(angle);
+            if (Math.abs(cosValue) > 0.0001) {
                 document.getElementById('tanValue').textContent = Math.tan(angle).toFixed(3);
             } else {
                 document.getElementById('tanValue').textContent = '∞';
