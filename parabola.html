@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parabola Interattiva</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --border: #dde3ed;
+    --border2: #c8d2e0;
+    --curve: #2563eb;
+    --curve-glow: rgba(37,99,235,0.18);
+    --vertex-col: #d97706;
+    --focus-col: #dc2626;
+    --accent: #2563eb;
+    --text: #1e2a3a;
+    --muted: #64748b;
+    --label: #475569;
+    --canvas-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--text);
+  }
+  header h1 em { color: var(--curve); font-style: italic; }
+  header p { font-size: 0.75rem; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
+
+  .layout {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 1100px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .controls {
+    flex: 0 0 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    order: 0;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    flex: 1 1 500px;
+    min-width: 320px;
+    background: var(--canvas-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    order: 1;
+  }
+  canvas { display: block; width: 100%; cursor: crosshair; }
+
+  .canvas-badge {
+    position: absolute;
+    bottom: 10px; left: 12px;
+    background: rgba(255,255,255,0.88);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.68rem;
+    color: var(--label);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  #formula-display {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: rgba(255,255,255,0.92);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+  }
+  #formula-display span { color: var(--curve); font-weight: 600; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .card-title {
+    font-size: 0.63rem;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .slider-group { margin-bottom: 14px; }
+  .slider-group:last-child { margin-bottom: 0; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .slider-label { font-size: 0.78rem; color: var(--label); }
+  .slider-label strong {
+    font-size: 1rem;
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    color: var(--text);
+    margin-right: 4px;
+  }
+  .slider-value { font-size: 0.78rem; font-weight: 600; min-width: 44px; text-align: right; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 4px; border-radius: 2px; outline: none; cursor: pointer;
+  }
+  #sa { background: linear-gradient(90deg, #93c5fd, #2563eb); }
+  #sb { background: linear-gradient(90deg, #c4b5fd, #7c3aed); }
+  #sc { background: linear-gradient(90deg, #fcd34d, #d97706); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--curve);
+    box-shadow: 0 1px 6px rgba(37,99,235,0.25);
+    transition: transform .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--curve);
+  }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .info-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; }
+  .info-item .key { font-size: 0.58rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .info-item .val { font-size: 0.76rem; color: var(--text); font-weight: 600; }
+  .val.concave { color: #2563eb; }
+  .val.convex  { color: #dc2626; }
+
+  .legend { display: flex; flex-direction: column; gap: 7px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--label); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .line-seg { width: 20px; height: 2px; flex-shrink: 0; }
+
+  button {
+    width: 100%; padding: 9px;
+    background: #fff; border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.08em;
+    cursor: pointer; transition: all .2s;
+  }
+  button:hover { border-color: var(--curve); color: var(--curve); background: #eff6ff; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Parabola <em>Interattiva</em></h1>
+  <p>y = ax² + bx + c &nbsp;·&nbsp; Piano Cartesiano</p>
+</header>
+
+<div class="layout">
+
+  <!-- SINISTRA: controlli -->
+  <div class="controls">
+    <div class="card">
+      <div class="card-title">Coefficienti</div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label"><strong>a</strong> &nbsp;quadratico</span>
+          <span class="slider-value" id="va" style="color:#2563eb">1</span>
+        </div>
+        <input type="range" id="sa" min="-3" max="3" step="0.1" value="1">
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label"><strong>b</strong> &nbsp;lineare</span>
+          <span class="slider-value" id="vb" style="color:#7c3aed">0</span>
+        </div>
+        <input type="range" id="sb" min="-5" max="5" step="0.1" value="0">
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label"><strong>c</strong> &nbsp;termine noto</span>
+          <span class="slider-value" id="vc" style="color:#d97706">0</span>
+        </div>
+        <input type="range" id="sc" min="-5" max="5" step="0.1" value="0">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Proprietà</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="key">Vertice</div><div class="val" id="p-vertex">—</div></div>
+        <div class="info-item"><div class="key">Concavità</div><div class="val" id="p-conc">—</div></div>
+        <div class="info-item"><div class="key">Discriminante Δ</div><div class="val" id="p-delta">—</div></div>
+        <div class="info-item"><div class="key">Radici reali</div><div class="val" id="p-roots">—</div></div>
+        <div class="info-item"><div class="key">Fuoco</div><div class="val" id="p-focus">—</div></div>
+        <div class="info-item"><div class="key">Direttrice y =</div><div class="val" id="p-dir">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Legenda</div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="line-seg" style="background:#2563eb; height:2.5px; border-radius:2px;"></div>
+          Parabola y = ax² + bx + c
+        </div>
+        <div class="legend-item">
+          <div class="dot" style="background:#d97706;"></div>
+          Vertice V
+        </div>
+        <div class="legend-item">
+          <div class="dot" style="background:#dc2626;"></div>
+          Fuoco F
+        </div>
+        <div class="legend-item">
+          <div class="line-seg" style="border-top:2px dashed #dc2626; background:transparent; height:0;"></div>
+          Direttrice
+        </div>
+        <div class="legend-item">
+          <div class="dot" style="background:#fff; border:2px solid #2563eb;"></div>
+          Radici (x₁, x₂)
+        </div>
+      </div>
+    </div>
+
+    <button onclick="reset()">↺ &nbsp; Ripristina valori predefiniti</button>
+  </div>
+
+  <!-- DESTRA: canvas -->
+  <div class="canvas-wrap">
+    <canvas id="cv"></canvas>
+    <div class="canvas-badge" id="coords">x: 0 &nbsp; y: 0</div>
+    <div id="formula-display">y = <span id="fml">x²</span></div>
+  </div>
+
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H, cx, cy, scale;
+
+function resize() {
+  const wrap = cv.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  W = wrap.clientWidth;
+  H = Math.min(W * 0.78, 520);
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  cx = W / 2; cy = H / 2;
+  scale = Math.min(W, H) / 10;
+  draw();
+}
+
+function toCanvas(x, y) { return [cx + x * scale, cy - y * scale]; }
+function toWorld(px, py) { return [(px - cx) / scale, (cy - py) / scale]; }
+
+let A = 1, B = 0, C = 0;
+function getSliders() {
+  A = parseFloat(document.getElementById('sa').value);
+  B = parseFloat(document.getElementById('sb').value);
+  C = parseFloat(document.getElementById('sc').value);
+}
+function fmt(n, d = 2) { return parseFloat(n.toFixed(d)); }
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  const xMin = Math.floor(-cx / scale) - 1;
+  const xMax = Math.ceil((W - cx) / scale) + 1;
+  const yMin = Math.floor(-(H - cy) / scale) - 1;
+  const yMax = Math.ceil(cy / scale) + 1;
+
+  // grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+  ctx.lineWidth = 0.5;
+  for (let x = xMin; x <= xMax; x++) {
+    const [px] = toCanvas(x, 0);
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+  }
+  for (let y = yMin; y <= yMax; y++) {
+    const [, py] = toCanvas(0, y);
+    ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+
+  // tick labels
+  ctx.font = `10px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.textAlign = 'center';
+  for (let x = xMin; x <= xMax; x++) {
+    if (x === 0) continue;
+    const [px] = toCanvas(x, 0);
+    ctx.fillText(x, px, cy + 14);
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    ctx.fillRect(px - 0.5, cy - 4, 1, 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  }
+  ctx.textAlign = 'right';
+  for (let y = yMin; y <= yMax; y++) {
+    if (y === 0) continue;
+    const [, py] = toCanvas(0, y);
+    ctx.fillText(y, cx - 6, py + 3);
+  }
+  ctx.textAlign = 'center';
+  ctx.fillText('0', cx - 10, cy + 14);
+
+  // arrows & labels
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  arrowHead(W - 8, cy, 1, 0); arrowHead(cx, 8, 0, -1);
+  ctx.fillStyle = 'rgba(0,0,0,0.40)';
+  ctx.font = `italic 13px 'DM Serif Display', serif`;
+  ctx.fillText('x', W - 10, cy - 10);
+  ctx.fillText('y', cx + 10, 14);
+
+  if (Math.abs(A) < 0.001) {
+    ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    const [px1, py1] = toCanvas(xMin, B*xMin+C);
+    const [px2, py2] = toCanvas(xMax, B*xMax+C);
+    ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+    updateFormula(A, B, C); return;
+  }
+
+  const xv = -B / (2*A);
+  const yv = A*xv*xv + B*xv + C;
+  const p  = 1 / (4*A);
+  const yf = yv + p;
+  const yd = yv - p;
+
+  // direttrice
+  const [, dirPy] = toCanvas(0, yd);
+  if (dirPy >= 0 && dirPy <= H) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(220,38,38,0.5)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(0, dirPy); ctx.lineTo(W, dirPy); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(220,38,38,0.65)';
+    ctx.font = `9px 'JetBrains Mono', monospace`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`y = ${fmt(yd)}`, 6, dirPy - 4);
+    ctx.restore();
+  }
+
+  // parabola
+  function drawCurve(color, lw) {
+    ctx.strokeStyle = color; ctx.lineWidth = lw;
+    ctx.beginPath();
+    let first = true;
+    for (let px = 0; px <= W; px += 1.5) {
+      const wx = (px - cx) / scale;
+      const wy = A*wx*wx + B*wx + C;
+      const [, py] = toCanvas(wx, wy);
+      if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.shadowColor = 'rgba(37,99,235,0.18)'; ctx.shadowBlur = 10;
+  drawCurve('rgba(37,99,235,0.12)', 8);
+  ctx.shadowBlur = 0;
+  drawCurve('#2563eb', 2.5);
+
+  // roots
+  const delta = B*B - 4*A*C;
+  if (delta >= 0) {
+    [(-B - Math.sqrt(delta))/(2*A), (-B + Math.sqrt(delta))/(2*A)].forEach(xr => {
+      const [prx, pry] = toCanvas(xr, 0);
+      ctx.beginPath(); ctx.arc(prx, pry, 5, 0, Math.PI*2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.font = `9px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(fmt(xr), prx, pry + 16);
+    });
+  }
+
+  // vertex
+  const [vx, vy] = toCanvas(xv, yv);
+  ctx.beginPath(); ctx.arc(vx, vy, 6, 0, Math.PI*2);
+  ctx.fillStyle = '#d97706'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#92400e';
+  ctx.font = `9px 'JetBrains Mono', monospace`;
+  ctx.textAlign = vx > W - 90 ? 'right' : 'left';
+  ctx.fillText(`V(${fmt(xv)}, ${fmt(yv)})`, vx + (vx > W-90 ? -10 : 10), vy - 9);
+
+  // focus
+  const [fx, fy] = toCanvas(xv, yf);
+  if (fx >= 0 && fx <= W && fy >= 0 && fy <= H) {
+    ctx.beginPath(); ctx.arc(fx, fy, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#dc2626'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#991b1b';
+    ctx.font = `9px 'JetBrains Mono', monospace`;
+    ctx.textAlign = fx > W - 90 ? 'right' : 'left';
+    ctx.fillText(`F(${fmt(xv)}, ${fmt(yf)})`, fx + (fx > W-90 ? -10 : 10), fy + 14);
+  }
+
+  updateInfo(xv, yv, yf, yd, delta, A);
+  updateFormula(A, B, C);
+}
+
+function arrowHead(x, y, dx, dy) {
+  const s = 7;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - s*dx + s*dy*0.5, y - s*dy - s*dx*0.5);
+  ctx.lineTo(x - s*dx - s*dy*0.5, y - s*dy + s*dx*0.5);
+  ctx.closePath(); ctx.fill();
+}
+
+function updateInfo(xv, yv, yf, yd, delta, a) {
+  document.getElementById('p-vertex').textContent = `(${fmt(xv)}, ${fmt(yv)})`;
+  const el = document.getElementById('p-conc');
+  if (Math.abs(A) < 0.001) { el.textContent = 'Retta'; el.className = 'val'; }
+  else if (a > 0)           { el.textContent = '↑ verso l\'alto'; el.className = 'val concave'; }
+  else                      { el.textContent = '↓ verso il basso'; el.className = 'val convex'; }
+  document.getElementById('p-delta').textContent = fmt(delta);
+  const re = document.getElementById('p-roots');
+  if (Math.abs(A) < 0.001) re.textContent = '—';
+  else if (delta > 0) {
+    const x1 = (-B - Math.sqrt(delta))/(2*A), x2 = (-B + Math.sqrt(delta))/(2*A);
+    re.textContent = `${fmt(x1)}, ${fmt(x2)}`;
+  } else if (delta === 0) re.textContent = `${fmt(xv)} (doppia)`;
+  else re.textContent = 'Nessuna';
+  document.getElementById('p-focus').textContent = `(${fmt(xv)}, ${fmt(yf)})`;
+  document.getElementById('p-dir').textContent = fmt(yd);
+}
+
+function updateFormula(a, b, c) {
+  let s = '';
+  if (Math.abs(a) >= 0.001) {
+    if (a === 1) s += 'x²'; else if (a === -1) s += '-x²'; else s += `${fmt(a)}x²`;
+  }
+  if (Math.abs(b) >= 0.001) {
+    if (s && b > 0) s += ' + '; else if (b < 0) s += ' - ';
+    const ab = Math.abs(b);
+    s += ab === 1 ? 'x' : `${fmt(ab)}x`;
+  }
+  if (Math.abs(c) >= 0.001) {
+    if (s && c > 0) s += ` + ${fmt(c)}`; else if (c < 0) s += ` - ${fmt(Math.abs(c))}`; else s += `${fmt(c)}`;
+  }
+  document.getElementById('fml').textContent = s || '0';
+}
+
+['sa','sb','sc'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById('v' + id[1]).textContent = fmt(parseFloat(this.value));
+    getSliders(); draw();
+  });
+});
+
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top);
+  document.getElementById('coords').textContent = `x: ${fmt(wx)}   y: ${fmt(wy)}`;
+});
+
+function reset() {
+  document.getElementById('sa').value = 1;
+  document.getElementById('sb').value = 0;
+  document.getElementById('sc').value = 0;
+  document.getElementById('va').textContent = '1';
+  document.getElementById('vb').textContent = '0';
+  document.getElementById('vc').textContent = '0';
+  getSliders(); draw();
+}
+
+window.addEventListener('resize', resize);
+resize();
+</script>
+</body>
+</html>
