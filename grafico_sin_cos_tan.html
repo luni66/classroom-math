@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funzioni Goniometriche</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400;600&display=swap');
+
+  :root {
+    --bg:     #f4f6fb;
+    --surf:   #ffffff;
+    --border: #dde2ef;
+    --accent: #2a6fdb;
+    --sine:   #e05a2b;
+    --cos:    #1a9e6e;
+    --tan:    #8b3fcf;
+    --point:  #c49000;
+    --text:   #1e2340;
+    --muted:  #8892b0;
+    --grid:   #eaecf5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 14px;
+  }
+
+  header { text-align: center; margin-bottom: 18px; }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: clamp(1.3rem, 3.5vw, 2rem);
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  header p { font-size: 0.68rem; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+
+  .toggles {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tog {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: #111;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all .18s;
+    user-select: none;
+  }
+  .tog[data-fn="sin"].on  { border-color: var(--sine);  color: #111;  background: rgba(224,90,43,.08); }
+  .tog[data-fn="cos"].on  { border-color: var(--cos);   color: #111;  background: rgba(26,158,110,.08); }
+  .tog[data-fn="tan"].on  { border-color: var(--tan);   color: #111;  background: rgba(139,63,207,.08); }
+
+  .stage {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1020px;
+  }
+  canvas {
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: block;
+  }
+  #circleCanvas { flex-shrink: 0; }
+  #graphCanvas  { flex: 1; min-width: 280px; }
+
+  .val-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    font-size: 0.78rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .val-item { display: flex; align-items: center; gap: 6px; }
+  .val-item .lbl { color: var(--muted); }
+  .val-item .num { font-weight: 600; }
+  .v-sin { color: var(--sine); }
+  .v-cos { color: var(--cos); }
+  .v-tan { color: var(--tan); }
+  .v-ang { color: var(--point); }
+
+  .controls {
+    margin-top: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button.ctrl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color .18s, color .18s;
+  }
+  button.ctrl:hover { border-color: var(--accent); color: var(--accent); }
+  button.ctrl.active { border-color: var(--accent); color: var(--accent); background: rgba(79,156,249,.08); }
+
+  .speed-wrap {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .68rem; color: var(--muted);
+  }
+  input[type=range] {
+    -webkit-appearance: none; width: 100px; height: 3px;
+    background: var(--border); border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 13px; height: 13px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+
+  .legend {
+    margin-top: 12px;
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+    font-size: .68rem; color: var(--muted);
+  }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Funzioni Goniometriche</h1>
+</header>
+
+<div class="toggles">
+  <button class="tog on" data-fn="sin">sin α</button>
+  <button class="tog"    data-fn="cos">cos α</button>
+  <button class="tog"    data-fn="tan">tan α</button>
+</div>
+
+<div class="stage">
+  <canvas id="circleCanvas" width="320" height="320"></canvas>
+  <canvas id="graphCanvas"  width="500" height="320"></canvas>
+</div>
+
+<div class="val-row">
+  <div class="val-item"><span class="lbl">α =</span><span class="num v-ang" id="vAng">0.0°</span></div>
+  <div class="val-item" id="rowSin"><span class="lbl">sin =</span><span class="num v-sin" id="vSin">0.000</span></div>
+  <div class="val-item" id="rowCos" style="display:none"><span class="lbl">cos =</span><span class="num v-cos" id="vCos">1.000</span></div>
+  <div class="val-item" id="rowTan" style="display:none"><span class="lbl">tan =</span><span class="num v-tan" id="vTan">0.000</span></div>
+</div>
+
+<div class="controls">
+  <button class="ctrl active" id="btnPlay">⏸ pausa</button>
+  <button class="ctrl"        id="btnReset">↺ reset</button>
+  <div class="speed-wrap">
+    <span>lento</span>
+    <input type="range" id="speed" min="0.02" max="1" step="0.02" value="0.3">
+    <span>veloce</span>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:#2a6fdb"></span>punto P</span>
+  <span><span class="dot" style="background:#e05a2b"></span>sin α</span>
+  <span><span class="dot" style="background:#1a9e6e"></span>cos α</span>
+  <span><span class="dot" style="background:#8b3fcf"></span>tan α</span>
+</div>
+
+<script>
+const cc   = document.getElementById('circleCanvas');
+const gc   = document.getElementById('graphCanvas');
+const ctxC = cc.getContext('2d');
+const ctxG = gc.getContext('2d');
+
+const C = {
+  bg:    '#ffffff',
+  grid:  '#eaecf5',
+  axis:  '#b0bcd8',
+  circ:  '#2a6fdb',
+  sine:  '#e05a2b',
+  cos:   '#1a9e6e',
+  tan:   '#8b3fcf',
+  point: '#c49000',
+  muted: '#a0aac4',
+};
+
+let angle   = 0;
+let running = true;
+let lastTime = null;
+let speed   = 0.3;
+
+const show = { sin: true, cos: false, tan: false };
+const hist = { sin: [], cos: [], tan: [] };
+const MAX_HIST = 1000;
+
+function fmt(v, d=3){ return v.toFixed(d); }
+
+function pushHist(a){
+  if(show.sin){ hist.sin.push(a); if(hist.sin.length > MAX_HIST) hist.sin.shift(); }
+  if(show.cos){ hist.cos.push(a); if(hist.cos.length > MAX_HIST) hist.cos.shift(); }
+  if(show.tan){ hist.tan.push(a); if(hist.tan.length > MAX_HIST) hist.tan.shift(); }
+}
+
+// ── draw unit circle ─────────────────────────────────────────────────────────
+function drawCircle(theta){
+  const W = cc.width, H = cc.height;
+  const cx = W/2, cy = H/2;
+  const R  = W * 0.37;
+
+  ctxC.clearRect(0,0,W,H);
+  ctxC.fillStyle = C.bg;
+  ctxC.fillRect(0,0,W,H);
+
+  // grid
+  ctxC.strokeStyle = C.grid; ctxC.lineWidth = 1;
+  for(let x=0; x<=W; x+=W/8){ ctxC.beginPath(); ctxC.moveTo(x,0); ctxC.lineTo(x,H); ctxC.stroke(); }
+  for(let y=0; y<=H; y+=H/8){ ctxC.beginPath(); ctxC.moveTo(0,y); ctxC.lineTo(W,y); ctxC.stroke(); }
+
+  // axes
+  ctxC.strokeStyle = C.axis; ctxC.lineWidth = 1.5;
+  ctxC.beginPath(); ctxC.moveTo(cx-R*1.28,cy); ctxC.lineTo(cx+R*1.28,cy); ctxC.stroke();
+  ctxC.beginPath(); ctxC.moveTo(cx,cy-R*1.28); ctxC.lineTo(cx,cy+R*1.28); ctxC.stroke();
+
+  // axis labels — fuori dalla circonferenza
+  ctxC.fillStyle = '#111'; ctxC.font = 'bold 11px Arial, sans-serif';
+  ctxC.textAlign = 'center';
+  // asse x: +1 a destra, −1 a sinistra (fuori dal cerchio)
+  ctxC.fillText('+1', cx + R + 14, cy + 4);
+  ctxC.fillText('−1', cx - R - 14, cy + 4);
+  // asse y: +1 sopra, −1 sotto (fuori dal cerchio)
+  ctxC.fillText('+1', cx, cy - R - 8);
+  ctxC.fillText('−1', cx, cy + R + 16);
+
+  const px = cx + R * Math.cos(theta);
+  const py = cy - R * Math.sin(theta);
+  const sinV = Math.sin(theta);
+  const cosV = Math.cos(theta);
+  const tanV = Math.tan(theta);
+
+  // ── tangente geometrica sulla retta x=1 ───────────────────────────────────
+  if(show.tan && Math.abs(tanV) < 8){
+    const tx = cx + R;
+    const ty = cy - tanV * R;
+    // guida verticale
+    ctxC.beginPath(); ctxC.moveTo(tx, cy-R*1.1); ctxC.lineTo(tx, cy+R*1.1);
+    ctxC.strokeStyle = 'rgba(139,63,207,0.15)'; ctxC.lineWidth = 1;
+    ctxC.setLineDash([3,4]); ctxC.stroke(); ctxC.setLineDash([]);
+    // segmento tan (da punto sull'asse x al punto di intersezione)
+    ctxC.beginPath(); ctxC.moveTo(tx, cy); ctxC.lineTo(tx, ty);
+    ctxC.strokeStyle = C.tan; ctxC.lineWidth = 3; ctxC.stroke();
+    // prolungamento del raggio
+    ctxC.beginPath(); ctxC.moveTo(cx, cy); ctxC.lineTo(tx, ty);
+    ctxC.strokeStyle = 'rgba(139,63,207,0.35)'; ctxC.lineWidth = 1;
+    ctxC.setLineDash([4,3]); ctxC.stroke(); ctxC.setLineDash([]);
+    // dot
+    ctxC.beginPath(); ctxC.arc(tx, ty, 4, 0, Math.PI*2);
+    ctxC.fillStyle = C.tan; ctxC.fill();
+    // label
+    ctxC.fillStyle = '#111'; ctxC.font = '10px JetBrains Mono'; ctxC.textAlign = 'left';
+    ctxC.fillText('tan α', tx+6, (cy+ty)/2+4);
+  }
+
+  // ── coseno: proiezione orizzontale ────────────────────────────────────────
+  if(show.cos){
+    ctxC.beginPath(); ctxC.moveTo(cx, cy); ctxC.lineTo(cx+cosV*R, cy);
+    ctxC.strokeStyle = C.cos; ctxC.lineWidth = 3; ctxC.stroke();
+    // tratteggio verticale da P al piede
+    ctxC.beginPath(); ctxC.moveTo(px, cy); ctxC.lineTo(px, py);
+    ctxC.strokeStyle = 'rgba(26,158,110,0.4)'; ctxC.lineWidth = 1.5;
+    ctxC.setLineDash([3,4]); ctxC.stroke(); ctxC.setLineDash([]);
+    ctxC.fillStyle = '#111'; ctxC.font = '10px JetBrains Mono'; ctxC.textAlign = 'center';
+    ctxC.fillText('cos α', cx + cosV*R/2, cy + (cosV >= 0 ? 14 : -6));
+  }
+
+  // ── seno: proiezione verticale ────────────────────────────────────────────
+  if(show.sin){
+    ctxC.beginPath(); ctxC.moveTo(cx, cy); ctxC.lineTo(cx, cy - sinV*R);
+    ctxC.strokeStyle = C.sine; ctxC.lineWidth = 3; ctxC.stroke();
+    // tratteggio orizzontale da P all'asse y
+    ctxC.beginPath(); ctxC.moveTo(cx, py); ctxC.lineTo(px, py);
+    ctxC.strokeStyle = 'rgba(224,90,43,0.4)'; ctxC.lineWidth = 1.5;
+    ctxC.setLineDash([3,4]); ctxC.stroke(); ctxC.setLineDash([]);
+    // tratteggio verticale dal piede a P (giallo)
+    ctxC.beginPath(); ctxC.moveTo(px, cy); ctxC.lineTo(px, py);
+    ctxC.strokeStyle = 'rgba(196,144,0,0.3)'; ctxC.lineWidth = 1;
+    ctxC.setLineDash([3,4]); ctxC.stroke(); ctxC.setLineDash([]);
+    ctxC.fillStyle = '#111'; ctxC.font = '10px JetBrains Mono'; ctxC.textAlign = 'right';
+    ctxC.fillText('sin α', cx - 8, cy - sinV*R/2 + 4);
+  }
+
+  // ── circonferenza ─────────────────────────────────────────────────────────
+  ctxC.beginPath(); ctxC.arc(cx, cy, R, 0, Math.PI*2);
+  ctxC.strokeStyle = C.circ; ctxC.lineWidth = 1.5; ctxC.stroke();
+
+  // ── raggio ────────────────────────────────────────────────────────────────
+  ctxC.beginPath(); ctxC.moveTo(cx, cy); ctxC.lineTo(px, py);
+  ctxC.strokeStyle = C.circ; ctxC.lineWidth = 1.5; ctxC.stroke();
+
+  // ── arco angolo ───────────────────────────────────────────────────────────
+  const normTheta = ((theta % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+  ctxC.beginPath();
+  ctxC.arc(cx, cy, R*0.2, 0, -normTheta, true);
+  ctxC.strokeStyle = 'rgba(42,111,219,0.5)'; ctxC.lineWidth = 1.5; ctxC.stroke();
+  const midA = normTheta/2;
+  ctxC.fillStyle = '#111'; ctxC.font = '11px DM Serif Display'; ctxC.textAlign = 'left';
+  ctxC.fillText('α', cx + R*0.25*Math.cos(midA)+4, cy - R*0.25*Math.sin(midA)+4);
+
+  // ── punto P ───────────────────────────────────────────────────────────────
+  ctxC.beginPath(); ctxC.arc(px, py, 6, 0, Math.PI*2);
+  ctxC.fillStyle = C.point; ctxC.fill();
+  ctxC.strokeStyle = '#fff'; ctxC.lineWidth = 1.5; ctxC.stroke();
+
+  ctxC.beginPath(); ctxC.arc(px, cy, 3.5, 0, Math.PI*2);
+  ctxC.fillStyle = C.muted; ctxC.fill();
+}
+
+// ── draw graph ────────────────────────────────────────────────────────────────
+function drawGraph(theta){
+  const W = gc.width, H = gc.height;
+  const padL=46, padR=20, padT=28, padB=36;
+  const gW = W-padL-padR, gH = H-padT-padB;
+  const midY = padT + gH/2;
+
+  ctxG.clearRect(0,0,W,H);
+  ctxG.fillStyle = C.bg; ctxG.fillRect(0,0,W,H);
+
+  // bg grid
+  ctxG.strokeStyle = C.grid; ctxG.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const y=padT+gH*i/4;
+    ctxG.beginPath(); ctxG.moveTo(padL,y); ctxG.lineTo(padL+gW,y); ctxG.stroke();
+  }
+  const steps=8;
+  for(let i=0;i<=steps;i++){
+    const x=padL+gW*i/steps;
+    ctxG.beginPath(); ctxG.moveTo(x,padT); ctxG.lineTo(x,padT+gH); ctxG.stroke();
+  }
+
+  // assi
+  ctxG.strokeStyle = C.axis; ctxG.lineWidth = 1.5;
+  ctxG.beginPath(); ctxG.moveTo(padL,midY); ctxG.lineTo(padL+gW,midY); ctxG.stroke();
+  ctxG.beginPath(); ctxG.moveTo(padL,padT); ctxG.lineTo(padL,padT+gH); ctxG.stroke();
+
+  // etichette x
+  ctxG.fillStyle = '#111'; ctxG.font = 'bold 11px Arial, sans-serif'; ctxG.textAlign = 'center';
+  const xlabels=['0','π/2','π','3π/2','2π','5π/2','3π','7π/2','4π'];
+  for(let i=0;i<=steps;i++) ctxG.fillText(xlabels[i], padL+gW*i/steps, padT+gH+16);
+
+  // scala y: se c'è tan mostriamo ±4, altrimenti ±1
+  const yScale = show.tan ? 4 : 1;
+  function toY(v){ return midY - (gH/2)*(v/yScale); }
+
+  // etichette y
+  ctxG.textAlign='right';
+  ctxG.fillStyle = '#111';
+  ctxG.font = 'bold 11px Arial, sans-serif';
+  ctxG.fillText(`+${yScale}`, padL-6, padT+4);
+  ctxG.fillText('0',          padL-6, midY+4);
+  ctxG.fillText(`−${yScale}`, padL-6, padT+gH+4);
+  // linee ±1 di riferimento quando si mostra tan
+  if(show.tan && yScale > 1){
+    ctxG.strokeStyle='rgba(160,170,196,0.35)'; ctxG.lineWidth=1; ctxG.setLineDash([4,4]);
+    [1,-1].forEach(v=>{
+      const y=toY(v);
+      ctxG.beginPath(); ctxG.moveTo(padL,y); ctxG.lineTo(padL+gW,y); ctxG.stroke();
+    });
+    ctxG.setLineDash([]);
+    ctxG.fillStyle='#111'; ctxG.font='bold 11px Arial, sans-serif'; ctxG.textAlign='right';
+    ctxG.fillText('+1', padL-6, toY(1)+4);
+    ctxG.fillText('−1', padL-6, toY(-1)+4);
+  }
+
+  // ── curve di riferimento (trasparenti) ────────────────────────────────────
+  function drawRefCurve(fn, color){
+    ctxG.beginPath();
+    let first=true, prevVal=null;
+    for(let px2=0;px2<=gW;px2++){
+      const t=(px2/gW)*4*Math.PI;
+      const v=fn(t);
+      if(!isFinite(v)||Math.abs(v)>yScale*1.5){ first=true; prevVal=null; continue; }
+      if(prevVal!==null && Math.abs(v-prevVal)>yScale*2){ first=true; ctxG.stroke(); ctxG.beginPath(); }
+      const y=toY(v);
+      if(first){ ctxG.moveTo(padL+px2,y); first=false; }
+      else      { ctxG.lineTo(padL+px2,y); }
+      prevVal=v;
+    }
+    ctxG.strokeStyle=color; ctxG.lineWidth=1.2; ctxG.stroke();
+  }
+  if(show.sin) drawRefCurve(Math.sin, 'rgba(224,90,43,0.2)');
+  if(show.cos) drawRefCurve(Math.cos, 'rgba(26,158,110,0.2)');
+  if(show.tan) drawRefCurve(Math.tan, 'rgba(139,63,207,0.2)');
+
+  // ── traccia storia ────────────────────────────────────────────────────────
+  function drawTrace(histArr, fn, color){
+    if(histArr.length<2) return;
+    ctxG.strokeStyle=color; ctxG.lineWidth=2;
+    ctxG.beginPath();
+    let prevNorm=null, prevVal=null;
+    for(let i=0;i<histArr.length;i++){
+      const a=histArr[i];
+      const v=fn(a);
+      const norm=(a%(4*Math.PI))/(4*Math.PI);
+      if(!isFinite(v)||Math.abs(v)>yScale*1.5){
+        ctxG.strokeStyle=color; ctxG.lineWidth=2; ctxG.stroke(); ctxG.beginPath();
+        prevNorm=null; prevVal=null; continue;
+      }
+      if(prevVal!==null && Math.abs(v-prevVal)>yScale*2){
+        ctxG.strokeStyle=color; ctxG.lineWidth=2; ctxG.stroke(); ctxG.beginPath();
+        prevNorm=null; prevVal=null;
+      }
+      if(prevNorm!==null && Math.abs(norm-prevNorm)>0.3){
+        ctxG.strokeStyle=color; ctxG.lineWidth=2; ctxG.stroke(); ctxG.beginPath();
+        prevNorm=null;
+      }
+      const hx=padL+norm*gW, hy=toY(v);
+      prevNorm===null ? ctxG.moveTo(hx,hy) : ctxG.lineTo(hx,hy);
+      prevNorm=norm; prevVal=v;
+    }
+    ctxG.strokeStyle=color; ctxG.lineWidth=2; ctxG.stroke();
+  }
+  if(show.sin) drawTrace(hist.sin, Math.sin, C.sine);
+  if(show.cos) drawTrace(hist.cos, Math.cos, C.cos);
+  if(show.tan) drawTrace(hist.tan, Math.tan, C.tan);
+
+  // ── punto corrente ────────────────────────────────────────────────────────
+  const normCur=(theta%(4*Math.PI))/(4*Math.PI);
+  const dotX=padL+normCur*gW;
+
+  function drawDot(fn, color){
+    const v=fn(theta);
+    if(!isFinite(v)||Math.abs(v)>yScale*1.5) return;
+    const dy=toY(v);
+    ctxG.beginPath(); ctxG.moveTo(dotX,midY); ctxG.lineTo(dotX,dy);
+    ctxG.strokeStyle=color; ctxG.lineWidth=1.2; ctxG.setLineDash([4,3]); ctxG.stroke(); ctxG.setLineDash([]);
+    ctxG.beginPath(); ctxG.arc(dotX,dy,5,0,Math.PI*2);
+    ctxG.fillStyle=color; ctxG.fill();
+    ctxG.strokeStyle='#fff'; ctxG.lineWidth=1.2; ctxG.stroke();
+    ctxG.fillStyle=color; ctxG.font='10px JetBrains Mono'; ctxG.textAlign='left';
+    ctxG.fillText(fmt(v), dotX+7, dy-(v>0?7:-14));
+  }
+  if(show.sin) drawDot(Math.sin, C.sine);
+  if(show.cos) drawDot(Math.cos, C.cos);
+  if(show.tan) drawDot(Math.tan, C.tan);
+}
+
+// ── animation loop ────────────────────────────────────────────────────────────
+function frame(ts){
+  if(running){
+    if(lastTime===null) lastTime=ts;
+    const dt=(ts-lastTime)/1000;
+    lastTime=ts;
+    angle += dt*speed*Math.PI;
+    pushHist(angle);
+  } else { lastTime=null; }
+
+  drawCircle(angle);
+  drawGraph(angle);
+
+  const deg=((angle*180/Math.PI)%360+360)%360;
+  document.getElementById('vAng').textContent = fmt(deg,1)+'°';
+  document.getElementById('vSin').textContent = fmt(Math.sin(angle));
+  document.getElementById('vCos').textContent = fmt(Math.cos(angle));
+  const tanV=Math.tan(angle);
+  document.getElementById('vTan').textContent = Math.abs(tanV)>999 ? '±∞' : fmt(tanV);
+
+  requestAnimationFrame(frame);
+}
+
+// ── toggle buttons ────────────────────────────────────────────────────────────
+document.querySelectorAll('.tog').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const fn = btn.dataset.fn;
+    show[fn] = !show[fn];
+    btn.classList.toggle('on', show[fn]);
+    const rowId = 'row' + fn.charAt(0).toUpperCase() + fn.slice(1);
+    document.getElementById(rowId).style.display = show[fn] ? '' : 'none';
+    hist[fn].length = 0;
+  });
+});
+
+// ── playback ──────────────────────────────────────────────────────────────────
+const btnPlay = document.getElementById('btnPlay');
+btnPlay.addEventListener('click', () => {
+  running = !running;
+  btnPlay.textContent = running ? '⏸ pausa' : '▶ avvia';
+  btnPlay.classList.toggle('active', running);
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  angle=0; hist.sin.length=0; hist.cos.length=0; hist.tan.length=0; lastTime=null;
+});
+document.getElementById('speed').addEventListener('input', e => { speed=parseFloat(e.target.value); });
+
+// ── drag sul cerchio ──────────────────────────────────────────────────────────
+let dragging=false;
+function stopAnim(){ running=false; btnPlay.textContent='▶ avvia'; btnPlay.classList.remove('active'); }
+function setAngleFromMouse(e){
+  const r=cc.getBoundingClientRect();
+  angle=Math.atan2(-(e.clientY-r.top-cc.height/2), e.clientX-r.left-cc.width/2);
+  pushHist(angle);
+}
+function setAngleFromTouch(e){
+  const r=cc.getBoundingClientRect(), t=e.touches[0];
+  angle=Math.atan2(-(t.clientY-r.top-cc.height/2), t.clientX-r.left-cc.width/2);
+  pushHist(angle);
+}
+cc.addEventListener('mousedown', e=>{ dragging=true; stopAnim(); setAngleFromMouse(e); });
+window.addEventListener('mouseup', ()=>{ dragging=false; });
+cc.addEventListener('mousemove', e=>{ if(dragging) setAngleFromMouse(e); });
+cc.addEventListener('touchstart', e=>{ dragging=true; stopAnim(); setAngleFromTouch(e); e.preventDefault(); },{passive:false});
+window.addEventListener('touchend', ()=>{ dragging=false; });
+cc.addEventListener('touchmove', e=>{ if(dragging){ setAngleFromTouch(e); e.preventDefault(); } },{passive:false});
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
