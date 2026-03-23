@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angoli associati – mini teoria</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      background: #fff;
+      color: #222;
+      padding: 14px 16px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #000000;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 14px;
+    }
+    h1 .subtitle {
+      font-size: 14px;
+      font-weight: normal;
+      color: #1a2e6e;
+      margin-left: 10px;
+    }
+
+    /* ── 2-column grid ─────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    /* ── single panel ──────────────────────────────────────── */
+    .panel {
+      border: 1.8px solid #1a2e6e;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .panel-head {
+      background: #1a2e6e;
+      color: #fff;
+      font-weight: bold;
+      font-size: 11px;
+      padding: 4px 8px;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .panel-head .nota {
+      font-weight: normal;
+      font-style: italic;
+      font-size: 10px;
+    }
+    .panel-body {
+      display: flex;
+      padding: 5px 6px;
+      gap: 4px;
+      align-items: center;
+    }
+    .formulas-col {
+      flex: 1;
+      min-width: 0;
+    }
+    .quadrant {
+      font-size: 10px;
+      color: #555;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+    .frow {
+      padding: 2px 0;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .circle-col {
+      width: 130px;
+      flex-shrink: 0;
+    }
+    .circle-col svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* ── dimostrazione ─────────────────────────────────────── */
+    .dimost {
+      border: 1.8px solid #c00;
+      border-radius: 3px;
+      padding: 8px 14px;
+      margin-top: 8px;
+    }
+    .dimost h2 {
+      color: #c00;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: center;
+      text-decoration: underline;
+      margin-bottom: 7px;
+    }
+    .dimost ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .dimost li {
+      font-size: 11.5px;
+      margin-bottom: 5px;
+      line-height: 1.65;
+    }
+
+    /* ── footer ────────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      font-size: 10px;
+      color: #666;
+      margin-top: 10px;
+      border-top: 1px solid #ccc;
+      padding-top: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .footer a { color: #2471a3; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+
+<h1>Angoli associati</h1>
+
+<div class="grid" id="grid"></div>
+
+<div class="dimost">
+  <ul>
+    <li>le relazioni di tangente e cotangente si ottengono algebricamente ricordando che
+        \(\tan\alpha = \dfrac{\sin\alpha}{\cos\alpha}\) &ensp;e che&ensp;
+        \(\cot\alpha = \dfrac{\cos\alpha}{\sin\alpha} = \dfrac{1}{\tan\alpha}\)</li>
+  </ul>
+</div>
+
+
+
+<!-- ── Phase 1: build panel DOM ──────────────────────────────── -->
+<script>
+"use strict";
+
+/*
+  makeSVG(alpha, beta, aLabel, bLabel, bVertBlue)
+  ────────────────────────────────────────────────────────────────
+  Color logic (matches the original PDF exactly):
+
+  α triangle (THIN, 1.6px):
+    • vertical leg   = RED   (length = sinα)
+    • horizontal leg = BLUE  (length = cosα)
+
+  β triangle (THICK, 3.8px):
+    bVertBlue = true  → vertical=BLUE, horizontal=RED   ["incrocio": 90°±α, 270°±α]
+    bVertBlue = false → vertical=RED,  horizontal=BLUE  ["stesso":  180°±α, 360°−α, −α]
+
+  Same colour = same length = congruent legs → visual proof of each identity.
+
+  Labels: pure Unicode strings (SVG is XML – no HTML entities).
+*/
+function makeSVG(alpha, beta, aLabel, bLabel, bVertBlue, aXO, bXO) {
+  var RED  = '#cc2020';
+  var BLUE = '#1a4aaa';
+  var W = 162, H = 162, cx = 81, cy = 81, r = 62, am = 14;
+  var D = Math.PI / 180;
+
+  function pt(deg) {
+    return { x: cx + r * Math.cos(deg * D), y: cy - r * Math.sin(deg * D) };
+  }
+  function f(v) { return v.toFixed(2); }
+
+  function lbl(deg, text, extraOff) {
+    var off = 16 + (extraOff || 0);
+    var lx  = cx + (r + off) * Math.cos(deg * D);
+    var ly  = cy - (r + off) * Math.sin(deg * D);
+    var c   = Math.cos(deg * D);
+    var anc = c > 0.25 ? 'start' : c < -0.25 ? 'end' : 'middle';
+    return '<text x="' + f(lx) + '" y="' + f(ly) + '" ' +
+           'font-size="9.5" font-family="serif" fill="#333" ' +
+           'text-anchor="' + anc + '" dominant-baseline="middle">' +
+           text + '</text>';
+  }
+
+  var A = pt(alpha), B = pt(beta);
+
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+
+  s += '<defs><marker id="ah" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto">' +
+       '<polygon points="0 0,6 2.5,0 5" fill="#444"/></marker></defs>';
+
+  s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r +
+       '" fill="none" stroke="#aaa" stroke-width="0.9"/>';
+
+  s += '<line x1="' + (cx-r-am) + '" y1="' + cy + '" x2="' + (cx+r+am) + '" y2="' + cy +
+       '" stroke="#444" stroke-width="1" marker-end="url(#ah)"/>';
+  s += '<line x1="' + cx + '" y1="' + (cy+r+am) + '" x2="' + cx + '" y2="' + (cy-r-am) +
+       '" stroke="#444" stroke-width="1" marker-end="url(#ah)"/>';
+
+  /*
+    Geometry rules (match the original PDF exactly):
+
+    α triangle — foot always on x-axis at (A.x, cy):
+      BLUE : origin → foot  (horizontal, along x-axis)
+      RED  : foot  → A      (vertical, not on any axis)
+
+    β triangle:
+      bVertBlue = false (stesso: π±α, 2π−α, −α)
+        foot on x-axis at (B.x, cy):
+        BLUE : origin → foot  (horizontal, along x-axis)
+        RED  : foot  → B      (vertical, not on any axis)
+
+      bVertBlue = true (incrocio: π/2±α, 3π/2±α)
+        foot on y-axis at (cx, B.y):
+        BLUE : origin → foot  (vertical, along y-axis)
+        RED  : foot  → B      (horizontal, not on any axis)
+  */
+
+  // ── α triangle ──────────────────────────────────────────────
+  // BLUE: origin → foot on x-axis (horizontal, along x-axis)
+  s += '<line x1="' + cx     + '" y1="' + cy     +
+            '" x2="' + f(A.x) + '" y2="' + cy     +
+       '" stroke="' + BLUE + '" stroke-width="3.8"/>';
+  // RED: foot → A (vertical, not on axis)
+  s += '<line x1="' + f(A.x) + '" y1="' + cy     +
+            '" x2="' + f(A.x) + '" y2="' + f(A.y) +
+       '" stroke="' + RED  + '" stroke-width="3.8"/>';
+
+  // ── β triangle ──────────────────────────────────────────────
+  if (!bVertBlue) {
+    // foot on x-axis at (B.x, cy)
+    // BLUE: origin → foot (horizontal, along x-axis)
+    s += '<line x1="' + cx     + '" y1="' + cy     +
+              '" x2="' + f(B.x) + '" y2="' + cy     +
+         '" stroke="' + BLUE + '" stroke-width="3.8"/>';
+    // RED: foot → B (vertical, not on axis)
+    s += '<line x1="' + f(B.x) + '" y1="' + cy     +
+              '" x2="' + f(B.x) + '" y2="' + f(B.y) +
+         '" stroke="' + RED  + '" stroke-width="3.8"/>';
+  } else {
+    // foot on y-axis at (cx, B.y)
+    // BLUE: origin → foot (vertical, along y-axis)
+    s += '<line x1="' + cx     + '" y1="' + cy     +
+              '" x2="' + cx     + '" y2="' + f(B.y) +
+         '" stroke="' + BLUE + '" stroke-width="3.8"/>';
+    // RED: foot → B (horizontal, not on axis)
+    s += '<line x1="' + cx     + '" y1="' + f(B.y) +
+              '" x2="' + f(B.x) + '" y2="' + f(B.y) +
+         '" stroke="' + RED  + '" stroke-width="3.8"/>';
+  }
+
+  // ── Rays on top ─────────────────────────────────────────────
+  s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + f(A.x) + '" y2="' + f(A.y) +
+       '" stroke="#444" stroke-width="1.5"/>';
+  s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + f(B.x) + '" y2="' + f(B.y) +
+       '" stroke="#444" stroke-width="1.5"/>';
+
+  s += '</svg>';
+  return s;
+}
+
+/* ── Panel data ──────────────────────────────────────────────────
+  bvb (betaVertBlue):
+    true  → β vertical=BLUE (|sinβ|=cosα)  ["incrocio": 90°±α, 270°±α]
+    false → β vertical=RED  (|sinβ|=sinα)  ["stesso":  180°±α, 360°−α, −α]
+
+  al/bl: pure Unicode SVG strings.  nota: HTML (entities allowed).        */
+var panels = [
+  { // 0 — complementari (90°−α)  incrocio → bvb=true
+    title:"angoli complementari", nota:"(α) e (π/2&minus;α)", q:"primo quadrante",
+    a:20, b:70, bvb:true,
+    al:"(α)", aXO:2,  bl:"(π/2−α)", bXO:6,
+    f:["\\sin(\\tfrac{\\pi}{2}-\\alpha)=\\cos\\alpha",
+       "\\cos(\\tfrac{\\pi}{2}-\\alpha)=\\sin\\alpha",
+       "\\tan(\\tfrac{\\pi}{2}-\\alpha)=\\cot\\alpha",
+       "\\cot(\\tfrac{\\pi}{2}-\\alpha)=\\tan\\alpha"]
+  },
+  { // 1 — differiscono di 90° (90°+α)  incrocio → bvb=true
+    title:"angoli che differiscono di un angolo retto", nota:"(α) e (π/2+α)", q:"secondo quadrante",
+    a:20, b:110, bvb:true,
+    al:"(α)", aXO:2,  bl:"(π/2+α)", bXO:8,
+    f:["\\sin(\\tfrac{\\pi}{2}+\\alpha)=\\cos\\alpha",
+       "\\cos(\\tfrac{\\pi}{2}+\\alpha)=-\\sin\\alpha",
+       "\\tan(\\tfrac{\\pi}{2}+\\alpha)=-\\cot\\alpha",
+       "\\cot(\\tfrac{\\pi}{2}+\\alpha)=-\\tan\\alpha"]
+  },
+  { // 2 — supplementari (180°−α)  stesso → bvb=false
+    title:"angoli supplementari", nota:"(α) e (π&minus;α)", q:"secondo quadrante",
+    a:20, b:160, bvb:false,
+    al:"(α)", aXO:2,  bl:"(π−α)", bXO:8,
+    f:["\\sin(\\pi-\\alpha)=\\sin\\alpha",
+       "\\cos(\\pi-\\alpha)=-\\cos\\alpha",
+       "\\tan(\\pi-\\alpha)=-\\tan\\alpha",
+       "\\cot(\\pi-\\alpha)=-\\cot\\alpha"]
+  },
+  { // 3 — differiscono di 180° (180°+α)  stesso → bvb=false
+    title:"angoli che differiscono di un angolo piatto", nota:"(α) e (π+α)", q:"terzo quadrante",
+    a:20, b:200, bvb:false,
+    al:"(α)", aXO:2,  bl:"(π+α)", bXO:8,
+    f:["\\sin(\\pi+\\alpha)=-\\sin\\alpha",
+       "\\cos(\\pi+\\alpha)=-\\cos\\alpha",
+       "\\tan(\\pi+\\alpha)=\\tan\\alpha",
+       "\\cot(\\pi+\\alpha)=\\cot\\alpha"]
+  },
+  { // 4 — somma 270° (270°−α)  incrocio → bvb=true
+    title:"angoli la cui somma è 3π/2", nota:"(α) e (3π/2&minus;α)", q:"terzo quadrante",
+    a:20, b:250, bvb:true,
+    al:"(α)", aXO:2,  bl:"(3π/2−α)", bXO:8,
+    f:["\\sin(\\tfrac{3\\pi}{2}-\\alpha)=-\\cos\\alpha",
+       "\\cos(\\tfrac{3\\pi}{2}-\\alpha)=-\\sin\\alpha",
+       "\\tan(\\tfrac{3\\pi}{2}-\\alpha)=\\cot\\alpha",
+       "\\cot(\\tfrac{3\\pi}{2}-\\alpha)=\\tan\\alpha"]
+  },
+  { // 5 — differiscono di 270° (270°+α)  incrocio → bvb=true
+    title:"angoli che differiscono di 3π/2", nota:"(α) e (3π/2+α)", q:"quarto quadrante",
+    a:20, b:290, bvb:true,
+    al:"(α)", aXO:2,  bl:"(3π/2+α)", bXO:8,
+    f:["\\sin(\\tfrac{3\\pi}{2}+\\alpha)=-\\cos\\alpha",
+       "\\cos(\\tfrac{3\\pi}{2}+\\alpha)=\\sin\\alpha",
+       "\\tan(\\tfrac{3\\pi}{2}+\\alpha)=-\\cot\\alpha",
+       "\\cot(\\tfrac{3\\pi}{2}+\\alpha)=-\\tan\\alpha"]
+  },
+  { // 6 — esplementari (360°−α)  stesso → bvb=false
+    title:"angoli esplementari", nota:"(α) e (2π&minus;α)", q:"quarto quadrante",
+    a:20, b:340, bvb:false,
+    al:"(α)", aXO:2,  bl:"(2π−α)", bXO:8,
+    f:["\\sin(2\\pi-\\alpha)=-\\sin\\alpha",
+       "\\cos(2\\pi-\\alpha)=\\cos\\alpha",
+       "\\tan(2\\pi-\\alpha)=-\\tan\\alpha",
+       "\\cot(2\\pi-\\alpha)=-\\cot\\alpha"]
+  },
+  { // 7 — opposti (−α)  stesso → bvb=false
+    title:"angoli opposti", nota:"(α) e (&minus;α)", q:"quarto quadrante",
+    a:20, b:-20, bvb:false,
+    al:"(α)", aXO:2,  bl:"(\u2212\u03b1)", bXO:2,
+    f:["\\sin(-\\alpha)=-\\sin\\alpha",
+       "\\cos(-\\alpha)=\\cos\\alpha",
+       "\\tan(-\\alpha)=-\\tan\\alpha",
+       "\\cot(-\\alpha)=-\\cot\\alpha"]
+  }
+];
+
+/* ── Build grid DOM ─────────────────────────────────────────── */
+var allFormulas = [];
+var grid = document.getElementById('grid');
+
+panels.forEach(function(p) {
+  var panel = document.createElement('div');
+  panel.className = 'panel';
+
+  var formulaHTML = p.f.map(function() {
+    var idx = allFormulas.length;
+    allFormulas.push(null);
+    return '<div class="frow"><span id="kf' + idx + '"></span></div>';
+  }).join('');
+
+  var base = allFormulas.length - p.f.length;
+  p.f.forEach(function(latex, i) { allFormulas[base + i] = latex; });
+
+  var svg = makeSVG(p.a, p.b, p.al, p.bl, p.bvb, p.aXO, p.bXO);
+
+  panel.innerHTML =
+    '<div class="panel-head">' + p.title +
+      ' <span class="nota">' + p.nota + '</span></div>' +
+    '<div class="panel-body">' +
+      '<div class="formulas-col">' +
+        '<div class="quadrant">' + p.q + '</div>' +
+        formulaHTML +
+      '</div>' +
+      '<div class="circle-col">' + svg + '</div>' +
+    '</div>';
+
+  grid.appendChild(panel);
+});
+</script>
+
+<!-- ── Phase 2: load KaTeX and render ───────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script>
+// Render panel formulas
+allFormulas.forEach(function(latex, i) {
+  var el = document.getElementById('kf' + i);
+  if (el && latex) {
+    katex.render(latex, el, { throwOnError: false, displayMode: false });
+  }
+});
+
+// Render dimostrazione (uses \(...\) delimiters)
+renderMathInElement(document.querySelector('.dimost'), {
+  delimiters: [
+    { left: '\\(', right: '\\)', display: false },
+    { left: '\\[', right: '\\]', display: true  }
+  ],
+  throwOnError: false
+});
+</script>
+
+</body>
+</html>
