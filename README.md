@@ -11,5 +11,8 @@ Grafici sin cos tan -> https://luni66.github.io/classroom-math/grafico_sin_cos_t
 Angoli associati:
 https://luni66.github.io/classroom-math/angoli_associati.html
 
+Grafico di seno e coseno con parametri:
+https://luni66.github.io/classroom-math/grafico_seno_coseno_parametri.html
+
 link per visualizzare:
 https://luni66.github.io/classroom-math/[nome_file.html]
